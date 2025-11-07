@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hockey women's junior world cup 2025",
+  title: "Hockey Women's Junior World Cup 2025",
   description: "Página para acreditaciones del mundial de hockey",
 };
 
