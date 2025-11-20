@@ -4,7 +4,8 @@ export type TipoArea =
   | "Voluntarios"
   | "Auspiciadores"
   | "Proveedores"
-  | "Fan Fest";
+  | "Fan Fest"
+  | "Prensa";
 
 const AREAS: TipoArea[] = [
   "Producción",
@@ -12,6 +13,7 @@ const AREAS: TipoArea[] = [
   "Auspiciadores",
   "Proveedores",
   "Fan Fest",
+  "Prensa",
 ];
 
 export default function AreaSelector({ onSelect }: { onSelect: (a: TipoArea) => void }) {
