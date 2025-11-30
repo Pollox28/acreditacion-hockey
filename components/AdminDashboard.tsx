@@ -29,16 +29,20 @@ const AREAS = [
   "Prensa",
 ] as const;
 
-const ZONAS: Exclude<Zona, null>[] = [
-  "Zona 1",
-  "Zona 2",
-  "Zona 3",
-  "Zona 4",
-  "Zona 5",
-  "Zona 6",
-  "Zona 7",
-  "Zona 8",
-];
+// Mapa: valor guardado -> texto que se muestra en el select
+const ZONA_LABEL: Record<Exclude<Zona, null>, string> = {
+  "Zona 1": "Zona 1.Venue",
+  "Zona 2": "Zona 2.FOP",
+  "Zona 3": "Zona 3.LOC",
+  "Zona 4": "Zona 4.VIP",
+  "Zona 5": "Zona 5.Broadcast",
+  "Zona 6": "Zona 6.Officials",
+  "Zona 7": "Zona 7.Media",
+  "Zona 8": "Zona 8.Volunteers",
+};
+
+// Lista de valores internos (lo que se guarda en la BD)
+const ZONAS = Object.keys(ZONA_LABEL) as Exclude<Zona, null>[];
 
 /** ===== Componente ===== */
 export default function AdminDashboard() {
@@ -87,33 +91,64 @@ export default function AdminDashboard() {
       .update({ status: nuevo })
       .eq("id", id);
     if (error) return alert(error.message);
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: nuevo } : r)));
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: nuevo } : r))
+    );
   };
 
   const setZona = async (id: number, zona: Zona) => {
-    const { error } = await supabase.from("acreditaciones").update({ zona }).eq("id", id);
+    const { error } = await supabase
+      .from("acreditaciones")
+      .update({ zona })
+      .eq("id", id);
     if (error) return alert(error.message);
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, zona } : r)));
   };
 
   const aprobarConZona = async (r: Row) => {
-    if (!r.zona) {
-      alert("Debes seleccionar una zona antes de aprobar.");
-      return;
-    }
-    const { error } = await supabase
-      .from("acreditaciones")
-      .update({ status: "aprobado", zona: r.zona })
-      .eq("id", r.id);
+  if (!r.zona) {
+    alert("Debes seleccionar una zona antes de aprobar.");
+    return;
+  }
 
-    if (error) return alert(error.message);
+  // 1) Actualiza en Supabase
+  const { error } = await supabase
+    .from("acreditaciones")
+    .update({ status: "aprobado", zona: r.zona })
+    .eq("id", r.id);
 
-    setRows((prev) =>
-      prev.map((x) =>
-        x.id === r.id ? { ...x, status: "aprobado", zona: r.zona } : x
-      )
-    );
-  };
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  // Actualiza estado local
+  setRows((prev) =>
+    prev.map((x) =>
+      x.id === r.id ? { ...x, status: "aprobado", zona: r.zona } : x
+    )
+  );
+
+  // 2) Envía el correo (no rompe nada si falla)
+  try {
+    await fetch("/api/send-approval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: r.nombre,
+        apellido: r.apellido,
+        correo: r.correo,
+        zona: r.zona,
+        area: r.area,
+      }),
+    });
+  } catch (e) {
+    console.error("Error enviando correo de aprobación", e);
+    // Aquí si quieres podrías mostrar un aviso:
+    // alert("Aprobado, pero no se pudo enviar el correo automáticamente.");
+  }
+};
+
 
   const exportCSV = () => {
     const headers = [
@@ -159,7 +194,9 @@ export default function AdminDashboard() {
         <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Panel de Acreditaciones</h1>
-            <p className="text-gray-600">Filtra, aprueba/rechaza y exporta a CSV.</p>
+            <p className="text-gray-600">
+              Filtra, aprueba/rechaza y exporta a CSV.
+            </p>
           </div>
           <div className="flex gap-2">
             <button onClick={exportCSV} className="rounded-xl border px-3 py-2">
@@ -248,25 +285,32 @@ export default function AdminDashboard() {
                     </td>
                     <td className="p-3 whitespace-nowrap">{r.rut}</td>
                     <td className="p-3 whitespace-nowrap">{r.correo}</td>
-                    <td className="p-3 whitespace-nowrap">{r.empresa ?? "—"}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      {r.empresa ?? "—"}
+                    </td>
 
                     {/* Estado */}
-                    <td className="p-3 whitespace-nowrap capitalize">{r.status}</td>
+                    <td className="p-3 whitespace-nowrap capitalize">
+                      {r.status}
+                    </td>
 
-                    {/* Zona (select editable con 8 zonas) */}
+                    {/* Zona (select editable con etiquetas nuevas) */}
                     <td className="p-3 whitespace-nowrap">
                       <select
                         className="rounded-lg border px-2 py-1"
                         value={r.zona ?? ""}
                         onChange={(e) => {
                           const val = e.target.value as Zona | "";
-                          setZona(r.id, val === "" ? null : (val as Zona));
+                          setZona(
+                            r.id,
+                            val === "" ? null : (val as Zona)
+                          );
                         }}
                       >
                         <option value="">—</option>
                         {ZONAS.map((z) => (
                           <option key={z} value={z}>
-                            {z}
+                            {ZONA_LABEL[z]}
                           </option>
                         ))}
                       </select>
@@ -304,3 +348,4 @@ export default function AdminDashboard() {
     </main>
   );
 }
+
