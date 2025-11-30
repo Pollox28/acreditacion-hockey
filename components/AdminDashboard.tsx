@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 /** ===== Tipos ===== */
-type Zona = `Zona ${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | null;
+type Zona = `Zona ${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}` | null;
 
 export type Row = {
   id: number;
@@ -39,6 +39,7 @@ const ZONA_LABEL: Record<Exclude<Zona, null>, string> = {
   "Zona 6": "Zona 6.Officials",
   "Zona 7": "Zona 7.Media",
   "Zona 8": "Zona 8.Volunteers",
+  "Zona 9": "Todas las zonas", // 👈 nueva zona, texto frontend
 };
 
 // Lista de valores internos (lo que se guarda en la BD)
@@ -144,7 +145,6 @@ export default function AdminDashboard() {
       });
     } catch (e) {
       console.error("Error enviando correo de aprobación", e);
-      // Si quieres: alert("Aprobado, pero no se pudo enviar el correo automáticamente.");
     }
   };
 
@@ -355,5 +355,6 @@ export default function AdminDashboard() {
     </main>
   );
 }
+
 
 
