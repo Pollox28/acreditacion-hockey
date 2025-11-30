@@ -106,49 +106,47 @@ export default function AdminDashboard() {
   };
 
   const aprobarConZona = async (r: Row) => {
-  if (!r.zona) {
-    alert("Debes seleccionar una zona antes de aprobar.");
-    return;
-  }
+    if (!r.zona) {
+      alert("Debes seleccionar una zona antes de aprobar.");
+      return;
+    }
 
-  // 1) Actualiza en Supabase
-  const { error } = await supabase
-    .from("acreditaciones")
-    .update({ status: "aprobado", zona: r.zona })
-    .eq("id", r.id);
+    // 1) Actualiza en Supabase
+    const { error } = await supabase
+      .from("acreditaciones")
+      .update({ status: "aprobado", zona: r.zona })
+      .eq("id", r.id);
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
-  // Actualiza estado local
-  setRows((prev) =>
-    prev.map((x) =>
-      x.id === r.id ? { ...x, status: "aprobado", zona: r.zona } : x
-    )
-  );
+    // Actualiza estado local
+    setRows((prev) =>
+      prev.map((x) =>
+        x.id === r.id ? { ...x, status: "aprobado", zona: r.zona } : x
+      )
+    );
 
-  // 2) Envía el correo (no rompe nada si falla)
-  try {
-    await fetch("/api/send-approval", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nombre: r.nombre,
-        apellido: r.apellido,
-        correo: r.correo,
-        zona: r.zona,
-        area: r.area,
-      }),
-    });
-  } catch (e) {
-    console.error("Error enviando correo de aprobación", e);
-    // Aquí si quieres podrías mostrar un aviso:
-    // alert("Aprobado, pero no se pudo enviar el correo automáticamente.");
-  }
-};
-
+    // 2) Envía el correo (no rompe nada si falla)
+    try {
+      await fetch("/api/send-approval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: r.nombre,
+          apellido: r.apellido,
+          correo: r.correo,
+          zona: r.zona,
+          area: r.area,
+        }),
+      });
+    } catch (e) {
+      console.error("Error enviando correo de aprobación", e);
+      // Si quieres: alert("Aprobado, pero no se pudo enviar el correo automáticamente.");
+    }
+  };
 
   const exportCSV = () => {
     const headers = [
@@ -274,72 +272,81 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="p-3 whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString()}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">{r.area}</td>
-                    <td className="p-3 whitespace-nowrap">
-                      {r.nombre} {r.apellido}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">{r.rut}</td>
-                    <td className="p-3 whitespace-nowrap">{r.correo}</td>
-                    <td className="p-3 whitespace-nowrap">
-                      {r.empresa ?? "—"}
-                    </td>
+                filtered.map((r) => {
+                  const rowColor =
+                    r.status === "aprobado"
+                      ? "bg-green-50"
+                      : r.status === "rechazado"
+                      ? "bg-red-50"
+                      : "";
 
-                    {/* Estado */}
-                    <td className="p-3 whitespace-nowrap capitalize">
-                      {r.status}
-                    </td>
+                  return (
+                    <tr key={r.id} className={`border-t ${rowColor}`}>
+                      <td className="p-3 whitespace-nowrap">
+                        {new Date(r.created_at).toLocaleString()}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">{r.area}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        {r.nombre} {r.apellido}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">{r.rut}</td>
+                      <td className="p-3 whitespace-nowrap">{r.correo}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        {r.empresa ?? "—"}
+                      </td>
 
-                    {/* Zona (select editable con etiquetas nuevas) */}
-                    <td className="p-3 whitespace-nowrap">
-                      <select
-                        className="rounded-lg border px-2 py-1"
-                        value={r.zona ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value as Zona | "";
-                          setZona(
-                            r.id,
-                            val === "" ? null : (val as Zona)
-                          );
-                        }}
-                      >
-                        <option value="">—</option>
-                        {ZONAS.map((z) => (
-                          <option key={z} value={z}>
-                            {ZONA_LABEL[z]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                      {/* Estado */}
+                      <td className="p-3 whitespace-nowrap capitalize">
+                        {r.status}
+                      </td>
 
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => aprobarConZona(r)}
-                          className="rounded-lg border px-2 py-1 hover:bg-green-50"
+                      {/* Zona (select editable con etiquetas nuevas) */}
+                      <td className="p-3 whitespace-nowrap">
+                        <select
+                          className="rounded-lg border px-2 py-1"
+                          value={r.zona ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value as Zona | "";
+                            setZona(
+                              r.id,
+                              val === "" ? null : (val as Zona)
+                            );
+                          }}
                         >
-                          Aprobar
-                        </button>
-                        <button
-                          onClick={() => setEstado(r.id, "rechazado")}
-                          className="rounded-lg border px-2 py-1 hover:bg-red-50"
-                        >
-                          Rechazar
-                        </button>
-                        <button
-                          onClick={() => setEstado(r.id, "pendiente")}
-                          className="rounded-lg border px-2 py-1 hover:bg-gray-50"
-                        >
-                          Pendiente
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <option value="">—</option>
+                          {ZONAS.map((z) => (
+                            <option key={z} value={z}>
+                              {ZONA_LABEL[z]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      <td className="p-3 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => aprobarConZona(r)}
+                            className="rounded-lg border px-2 py-1 hover:bg-green-50"
+                          >
+                            Aprobar
+                          </button>
+                          <button
+                            onClick={() => setEstado(r.id, "rechazado")}
+                            className="rounded-lg border px-2 py-1 hover:bg-red-50"
+                          >
+                            Rechazar
+                          </button>
+                          <button
+                            onClick={() => setEstado(r.id, "pendiente")}
+                            className="rounded-lg border px-2 py-1 hover:bg-gray-50"
+                          >
+                            Pendiente
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -348,4 +355,5 @@ export default function AdminDashboard() {
     </main>
   );
 }
+
 
