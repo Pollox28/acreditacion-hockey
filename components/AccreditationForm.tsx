@@ -42,10 +42,6 @@ export default function AccreditationForm({
       setError("Nombre y apellido son obligatorios.");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correo)) {
-      setError("Correo inválido.");
-      return;
-    }
 
     setCargando(true);
     try {
@@ -119,7 +115,6 @@ export default function AccreditationForm({
               placeholder="RUT, DNI o Pasaporte"
               value={datos.rut}
               onChange={(e) => setDatos({ ...datos, rut: e.target.value })}
-              required
             />
           </div>
           <div>
@@ -129,7 +124,6 @@ export default function AccreditationForm({
               className="w-full rounded-xl border px-3 py-2"
               value={datos.correo}
               onChange={(e) => setDatos({ ...datos, correo: e.target.value })}
-              required
             />
           </div>
         </div>
